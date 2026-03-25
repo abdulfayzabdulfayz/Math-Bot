@@ -4,31 +4,54 @@ const fs = require('fs');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// 🔹 DB yuklash
-let db = JSON.parse(fs.readFileSync('db.json'));
+// ================== DB ==================
+let db = { users: {}, referrals: {}, invitedBy: {} };
 
-// 🔹 DB saqlash
+try {
+  if (fs.existsSync('db.json')) {
+    db = JSON.parse(fs.readFileSync('db.json'));
+  } else {
+    fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
+  }
+} catch (e) {
+  console.log("❌ DB xatolik, qayta yaratildi");
+}
+
 function saveDB() {
   fs.writeFileSync('db.json', JSON.stringify(db, null, 2));
 }
 
-// 🔹 Kanallar
+// ================== SETTINGS ==================
 const channels = [
   { name: 'Kanal-1', username: '@oq_toplam_1996_2007_yechimlar' },
-  { name: 'Kanal-2', username: '@Matematiklar_academiyasi' }
+  { name: 'Kanal-2', username: '@abituriyent1_10_11_yechimlari' },
+  { name: 'Kanal-3', username: '@Matematiklar_academiyasi' }
 ];
 
 const PRIVATE_GROUP_ID = process.env.PRIVATE_GROUP_ID;
 
-// 🔹 START
+// ================== START ==================
 bot.start(async (ctx) => {
   const userId = ctx.from.id.toString();
+  const refId = ctx.startPayload;
 
-  // user qo‘shish
+  // user create
   if (!db.users[userId]) {
     db.users[userId] = {
-      gift: false
+      gift: false,
+      joined: Date.now()
     };
+    saveDB();
+  }
+
+  // referralni vaqtincha saqlab qo‘yamiz
+  if (
+    refId &&
+    refId !== userId &&
+    !db.invitedBy[userId] &&
+    db.users[refId]
+  ) {
+    db.invitedBy[userId] = refId;
     saveDB();
   }
 
@@ -39,16 +62,16 @@ bot.start(async (ctx) => {
   await ctx.reply(
 `👋 Assalomu alaykum!
 
-📚 Matematiklar Academiyasiga xush kelibsiz!
+📚 Matematiklar Akademiyasiga xush kelibsiz!
 
 👇 Avval quyidagi kanallarga obuna bo‘ling`,
     getChannelsKeyboard()
   );
 });
 
-// 🔹 Buttonlar
+// ================== BUTTON ==================
 function getChannelsKeyboard(unjoined = null) {
-  const list = unjoined || channels;
+  const list = unjoined  channels;
 
   return Markup.inlineKeyboard([
     ...list.map(ch => [
@@ -58,7 +81,7 @@ function getChannelsKeyboard(unjoined = null) {
   ]);
 }
 
-// 🔹 CHECK
+// ================== CHECK ==================
 bot.action('check', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
@@ -68,7 +91,8 @@ bot.action('check', async (ctx) => {
   for (let ch of channels) {
     try {
       const member = await ctx.telegram.getChatMember(ch.username, userId);
-      if (!['member','administrator','creator'].includes(member.status)) {
+
+      if (!['member', 'administrator', 'creator'].includes(member.status)) {
         unjoined.push(ch);
       }
     } catch {
@@ -76,21 +100,20 @@ bot.action('check', async (ctx) => {
     }
   }
 
-  // ❌ Obuna emas
+  // ❌ obuna emas
   if (unjoined.length > 0) {
     return ctx.reply(
-      `Siz quyidagi kanallarga obuna bo'lmadingiz! Iltimos barcha kanallarga azo bo'ling`,
+      `❌ Siz barcha kanallarga obuna bo‘lmadingiz`,
       getChannelsKeyboard(unjoined)
     );
   }
 
-  // 🔐 Referral qo‘shish (faqat shu yerda!)
-  const refId = ctx.startPayload;
+  // ================== REFERRAL CONFIRM ==================
+  const refId = db.invitedBy[userId];
 
-  if (refId && refId != userId && !db.invitedBy[userId]) {
-    db.invitedBy[userId] = refId;
-
+  if (refId) {
     if (!db.referrals[refId]) db.referrals[refId] = [];
+
     if (!db.referrals[refId].includes(userId)) {
       db.referrals[refId].push(userId);
     }
@@ -98,30 +121,30 @@ bot.action('check', async (ctx) => {
     saveDB();
   }
 
-  // 🔗 Referral link
+  // ================== REF LINK ==================
   const botInfo = await bot.telegram.getMe();
   const refLink = `https://t.me/${botInfo.username}?start=${userId}`;
 
   await ctx.reply(
-`🎉 Siz barcha kanallarga obuna bo‘ldingiz!
+`🎉 Obuna tasdiqlandi!
 
-🎁 Sovg‘ani olish uchun:
+🎁 Sovg‘a olish uchun:
 👉 3 ta do‘stingizni taklif qiling
 
-🔗 Sizning referal linkingiz:
+🔗 Sizning linkingiz:
 ${refLink}`,
     Markup.inlineKeyboard([
-      [Markup.button.callback('📊 Holatni tekshirish', 'status')]
+      [Markup.button.callback('📊 Holat', 'status')]
     ])
   );
 });
 
-// 🔹 STATUS
+// ================== STATUS ==================
 bot.action('status', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
 
-  const count = db.referrals[userId] ? db.referrals[userId].length : 0;
+  const count = db.referrals[userId]?.length  0;
 
   if (count >= 3 && !db.users[userId].gift) {
     try {
@@ -135,11 +158,9 @@ bot.action('status', async (ctx) => {
       return ctx.reply(
 `🎉 Tabriklaymiz!
 
-Siz 3 ta odam taklif qildingiz ✅
-
-🎁 Sovg‘a havolasi:`,
+Siz 3 ta odam taklif qildingiz ✅`,
         Markup.inlineKeyboard([
-          [Markup.button.url("Sovg'a havolasi", link.invite_link)]
+          [Markup.button.url("🎁 Sovg‘ani olish", link.invite_link)]
         ])
       );
     } catch (err) {
@@ -149,30 +170,29 @@ Siz 3 ta odam taklif qildingiz ✅
   }
 
   ctx.reply(
-`📊 Sizning natijangiz:
-
-👥 Taklif qilganlar: ${count} / 3
-👉 Yana ${3 - count} ta odam kerak`,
+`📊 Natijangiz:👥 ${count} / 3
+⏳ Qoldi: ${3 - count}`,
     Markup.inlineKeyboard([
       [Markup.button.callback('🔄 Yangilash', 'status')]
     ])
   );
 });
 
-// 🔹 ADMIN
+// ================== ADMIN ==================
 bot.command('admin', (ctx) => {
   if (ctx.from.id != process.env.ADMIN_ID) return;
 
   ctx.reply(
-`📊 Admin Panel
-👤 Foydalanuvchilar: ${Object.keys(db.users).length}
-🎁 Sovg‘a olganlar: ${
+`📊 Statistika
+
+👤 Users: ${Object.keys(db.users).length}
+🎁 Gift olganlar: ${
   Object.values(db.users).filter(u => u.gift).length
 }`
   );
 });
 
-// 🔹 BROADCAST
+// ================== BROADCAST ==================
 bot.command('broadcast', async (ctx) => {
   if (ctx.from.id != process.env.ADMIN_ID) return;
 
@@ -187,6 +207,11 @@ bot.command('broadcast', async (ctx) => {
   ctx.reply('✅ Yuborildi');
 });
 
-// 🔹 START BOT
+// ================== ERROR ==================
+bot.catch((err) => {
+  console.log("❌ Xatolik:", err);
+});
+
+// ================== START BOT ==================
 bot.launch();
 console.log('🚀 Bot ishga tushdi');
