@@ -39,7 +39,7 @@ bot.start(async (ctx) => {
   await ctx.reply(
 `👋 Assalomu alaykum!
 
-📚 Matematiklar Akademiyasiga xush kelibsiz!
+📚 Matematiklar Academiyasiga xush kelibsiz!
 
 👇 Avval quyidagi kanallarga obuna bo‘ling`,
     getChannelsKeyboard()
