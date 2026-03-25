@@ -71,7 +71,7 @@ bot.start(async (ctx) => {
 
 // ================== BUTTON ==================
 function getChannelsKeyboard(unjoined = null) {
-  const list = unjoined;
+  const list = unjoined || channels;
 
   return Markup.inlineKeyboard([
     ...list.map(ch => [
@@ -144,7 +144,7 @@ bot.action('status', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
 
-  const count = db.referrals[userId]?.length  0;
+  const count = db.referrals[userId]?.length || 0;
 
   if (count >= 3 && !db.users[userId].gift) {
     try {
@@ -170,7 +170,9 @@ Siz 3 ta odam taklif qildingiz ✅`,
   }
 
   ctx.reply(
-`📊 Natijangiz:👥 ${count} / 3
+`📊 Natijangiz:
+
+👥 ${count} / 3
 ⏳ Qoldi: ${3 - count}`,
     Markup.inlineKeyboard([
       [Markup.button.callback('🔄 Yangilash', 'status')]
