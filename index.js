@@ -71,7 +71,7 @@ bot.start(async (ctx) => {
 
 // ================== BUTTON ==================
 function getChannelsKeyboard(unjoined = null) {
-  const list = unjoined  channels;
+  const list = unjoined;
 
   return Markup.inlineKeyboard([
     ...list.map(ch => [
