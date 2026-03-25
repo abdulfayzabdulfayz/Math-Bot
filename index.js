@@ -15,8 +15,7 @@ function saveDB() {
 // 🔹 Kanallar
 const channels = [
   { name: 'Kanal-1', username: '@oq_toplam_1996_2007_yechimlar' },
-  { name: 'Kanal-2', username: '@abituriyent1_10_11_yechimlari' },
-  { name: 'Kanal-3', username: '@Matematiklar_academiyasi' }
+  { name: 'Kanal-2', username: '@Matematiklar_academiyasi' }
 ];
 
 const PRIVATE_GROUP_ID = process.env.PRIVATE_GROUP_ID;
